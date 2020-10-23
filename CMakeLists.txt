@@ -7,9 +7,12 @@
 # FV3
 ####################################################################################################
 
-cmake_minimum_required( VERSION 3.3.2 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.12 FATAL_ERROR )
 
-project( fv3 C CXX Fortran )
+find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild )
+find_package( jedicmake REQUIRED )
+
+project( fv3 VERSION 0.1.0 LANGUAGES C CXX Fortran )
 
 set( CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH} )
 
@@ -19,18 +22,11 @@ set( ECBUILD_DEFAULT_BUILD_TYPE Release )
 set( ENABLE_OS_TESTS           OFF CACHE BOOL "Disable OS tests" FORCE )
 set( ENABLE_LARGE_FILE_SUPPORT OFF CACHE BOOL "Disable testing of large file support" FORCE )
 
-include( ecbuild_system NO_POLICY_SCOPE )
-
-ecbuild_requires_macro_version( 2.7 )
-
 ####################################################################################################
 # Project
 ####################################################################################################
 
-ecbuild_declare_project()
-
 ecbuild_enable_fortran( REQUIRED )
-ecbuild_add_cxx11_flags()
 
 set( FV3_LINKER_LANGUAGE Fortran )
 
@@ -43,7 +39,7 @@ find_package( OpenMP COMPONENTS Fortran )
 
 # NetCDF
 set( NETCDF_F90 ON CACHE BOOL "Compile with Fortran NetCDF" )
-find_package( NetCDF REQUIRED )
+find_package( NetCDF COMPONENTS C Fortran REQUIRED )
 include_directories( ${NETCDF_INCLUDE_DIR} )
 
 # MPI
@@ -52,8 +48,7 @@ ecbuild_include_mpi()
 link_libraries(${MPI_CXX_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 
 # FMS
-ecbuild_use_package( PROJECT fms REQUIRED )
-include_directories( ${FMS_INCLUDE_DIRS} )
+ecbuild_find_package( NAME fms REQUIRED )
 
 ####################################################################################################
 # Export package info
@@ -109,6 +104,7 @@ list( APPEND fv3_src_files
   tools/external_sst.F90
   tools/fv_diagnostics.F90
   tools/fv_eta.F90
+  tools/fv_eta.h
   #tools/fv_eta.F90_65lyrs
   #tools/fv_eta.F90_NAM_lyrs
   tools/fv_grid_tools.F90
@@ -126,20 +122,26 @@ list( APPEND fv3_src_files
   tools/test_cases.F90
 )
 
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}  ${CMAKE_CURRENT_SOURCE_DIR}/tools )
+
 ####################################################################################################
 # Add library
 ####################################################################################################
 
+list( APPEND FV3_LIBS_DEP fms ${NETCDF_LIBRARIES} MPI::MPI_Fortran )
+if(OpenMP_Fortran_FOUND)
+  list( APPEND FV3_LIBS_DEP OpenMP::OpenMP_Fortran )
+endif()
+
 ecbuild_add_library( TARGET          fv3
                      SOURCES         ${fv3_src_files}
-                     LIBS            fms ${NETCDF_LIBRARIES} MPI::MPI_Fortran
+                     PRIVATE_LIBS    ${FV3_LIBS_DEP}
+                     PRIVATE_INCLUDES ${FV3_INCLUDE_DIRS} ${FV3_EXTRA_INCLUDE_DIRS}
+                     PUBLIC_INCLUDES $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/tools>
+                                     $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
                      INSTALL_HEADERS LISTED
                      LINKER_LANGUAGE ${FV3_LINKER_LANGUAGE}
                    )
-
-if(OpenMP_Fortran_FOUND)
-  target_link_libraries(fv3 OpenMP::OpenMP_Fortran)
-endif()
 
 #GFortran-10 support
 if(CMAKE_Fortran_COMPILER_ID MATCHES GNU AND CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10)
