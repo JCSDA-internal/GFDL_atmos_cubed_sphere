@@ -149,14 +149,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES GNU AND CMAKE_Fortran_COMPILER_VERSION VERS
 endif()
 
 ####################################################################################################
-# Install the Fortran modules
-####################################################################################################
-
-if(ECBUILD_INSTALL_FORTRAN_MODULES)
-  install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/${CMAKE_CFG_INTDIR} DESTINATION ${INSTALL_INCLUDE_DIR} )
-endif()
-
-####################################################################################################
 # Finalise configuration
 ####################################################################################################
 
