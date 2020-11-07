@@ -34,46 +34,23 @@ set( FV3_LINKER_LANGUAGE Fortran )
 # Dependencies
 ####################################################################################################
 
-#openMP
-find_package( OpenMP COMPONENTS Fortran )
-
-# NetCDF
-set( NETCDF_F90 ON CACHE BOOL "Compile with Fortran NetCDF" )
-find_package( NetCDF COMPONENTS C Fortran REQUIRED )
-include_directories( ${NETCDF_INCLUDE_DIR} )
-
 # MPI
 ecbuild_find_mpi( COMPONENTS CXX Fortran REQUIRED )
-ecbuild_include_mpi()
-link_libraries(${MPI_CXX_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+
+# OpenMP
+ecbuild_find_omp( COMPONENTS Fortran QUIET )
+
+# NetCDF
+find_package( NetCDF COMPONENTS C Fortran REQUIRED )
 
 # FMS
 ecbuild_find_package( NAME fms REQUIRED )
-
-####################################################################################################
-# Export package info
-####################################################################################################
-
-list( APPEND FV3_TPLS NetCDF fms )
-
-set( FV3_INCLUDE_DIRS ${CMAKE_Fortran_MODULE_DIRECTORY} )
-set( FV3_LIBRARIES fv3 )
-
-get_directory_property( FV3_DEFINITIONS COMPILE_DEFINITIONS )
-
-foreach( _tpl ${FV3_TPLS} )
-  string( TOUPPER ${_tpl} TPL )
-  list( APPEND FV3_EXTRA_DEFINITIONS   ${${TPL}_DEFINITIONS}  ${${TPL}_TPL_DEFINITIONS}  )
-  list( APPEND FV3_EXTRA_INCLUDE_DIRS  ${${TPL}_INCLUDE_DIRS} ${${TPL}_TPL_INCLUDE_DIRS} )
-  list( APPEND FV3_EXTRA_LIBRARIES     ${${TPL}_LIBRARIES}    ${${TPL}_TPL_LIBRARIES}    )
-endforeach()
 
 ####################################################################################################
 # Sources
 ####################################################################################################
 
 include( fv3_compiler_flags )
-include_directories( ${FV3_INCLUDE_DIRS} ${FV3_EXTRA_INCLUDE_DIRS} )
 
 list( APPEND fv3_src_files
   model/a2b_edge.F90
@@ -128,7 +105,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}  ${CMAKE_CURRENT_SOURCE_DIR}/to
 # Add library
 ####################################################################################################
 
-list( APPEND FV3_LIBS_DEP fms ${NETCDF_LIBRARIES} MPI::MPI_Fortran )
+list( APPEND FV3_LIBS_DEP fms NetCDF::NetCDF_Fortran MPI::MPI_Fortran )
 if(OpenMP_Fortran_FOUND)
   list( APPEND FV3_LIBS_DEP OpenMP::OpenMP_Fortran )
 endif()
